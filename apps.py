@@ -1,24 +1,26 @@
+import os
 import pickle
 import xgboost as xgb
 import pandas as pd
 import numpy as np
 from flask import Flask, request, jsonify
 
-apps = Flask(__name__)
+# This is to initialize Flask app
+app = Flask(__name__)
 
-# Load the trained XGBoost model
+# This is to load the trained XGBoost model
 xgb_model = xgb.Booster()
-xgb_model.load_model("xgboost_model.json")
+xgb_model.load_model("xgboost_model.json")  
 
-# Load the scaler
+# This is to load the scaler
 with open("scaler.pkl", "rb") as f:
     scaler = pickle.load(f)
 
-@apps.route('/')
+@app.route("/")
 def home():
     return "Welcome to the Price Prediction API!"
 
-@apps.route('/predict', methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
     try:
         # Get input JSON data
@@ -30,7 +32,7 @@ def predict():
                              'comp_2', 'ps2', 'fp2', 'comp_3', 'ps3', 'fp3', 'lag_price']
         df = df[expected_features]
 
-        # Handle missing values if any
+        # Handle missing values
         df = df.fillna(0)
 
         # Scale input data
@@ -47,5 +49,9 @@ def predict():
     except Exception as e:
         return jsonify({"error": str(e)})
 
-if __name__ == '__main__':
-    apps.run(host='0.0.0.0', port=8080)
+if __name__ == "__main__":
+    # Get port from environment variable (Render sets this dynamically)
+    port = int(os.environ.get("PORT", 8080))
+    
+    # Run the Flask app
+    app.run(host="0.0.0.0", port=port)
