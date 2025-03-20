@@ -16,9 +16,9 @@ xgb_model.load_model("xgboost_model.json")
 with open("scaler.pkl", "rb") as f:
     scaler = pickle.load(f)
 
-@app.route("/")
+@app.route("/predict")
 def home():
-    return "Welcome to the Price Prediction API!"
+    return "Welcome to Kamal Price Prediction API!"
 
 @app.route("/predict", methods=["POST"])
 def predict():
