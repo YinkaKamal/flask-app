@@ -44,22 +44,22 @@ form_template = """
 </html>
 """
 
-# Home route to render the form
+# Home route to display form (GET only)
 @app.route("/", methods=["GET"])
 def index():
     return render_template_string(form_template, fields=expected_features, prediction=None)
 
-# Route to handle form submission and return prediction
+# Handle form submission (POST only)
 @app.route("/predict_form", methods=["POST"])
 def predict_form():
     try:
-        # Read values from the form
+        # Extract input values from form and convert to float
         input_values = [float(request.form[field]) for field in expected_features]
 
         # Create a DataFrame
         df = pd.DataFrame([input_values], columns=expected_features)
 
-        # Scale the input
+        # Scale input
         df_scaled = scaler.transform(df)
 
         # Convert to DMatrix
@@ -68,24 +68,26 @@ def predict_form():
         # Make prediction
         prediction = xgb_model.predict(dmatrix)[0]
 
-        # Return the form with prediction
+        # Render form again with prediction result
         return render_template_string(form_template, fields=expected_features, prediction=round(prediction, 2))
 
     except Exception as e:
         return f"Error: {e}"
 
-# API endpoint to receive JSON and return prediction
+# API endpoint for JSON-based prediction
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.get_json()
         df = pd.DataFrame(data)
         df = df[expected_features].fillna(0)
+
         df_scaled = scaler.transform(df)
         dmatrix = xgb.DMatrix(df_scaled)
         predictions = xgb_model.predict(dmatrix)
+
         return jsonify({"predictions": predictions.tolist()})
-    
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
