@@ -25,11 +25,11 @@ form_template = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Price Prediction</title>
+    <title>Kamal Price Prediction</title>
 </head>
 <body>
     <h2>Price Prediction Form</h2>
-    <form method="POST" action="/predict_form">
+    <form method="POST" action="/predict">
         {% for field in fields %}
             <label for="{{ field }}">{{ field }}:</label>
             <input type="text" name="{{ field }}" required><br><br>
