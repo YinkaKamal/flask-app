@@ -45,7 +45,7 @@ form_template = """
 """
 
 # Home route to display form (GET only)
-@app.route("/", methods=["GET"])
+@app.route("/predict", methods=["GET"])
 def index():
     return render_template_string(form_template, fields=expected_features, prediction=None)
 
