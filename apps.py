@@ -28,7 +28,7 @@ form_template = """
     <title>Kamal Price Prediction</title>
 </head>
 <body>
-    <h2>Price Prediction Form</h2>
+    <h2>Kamal Price Prediction Form</h2>
     <form method="POST" action="/predict">
         {% for field in fields %}
             <label for="{{ field }}">{{ field }}:</label>
