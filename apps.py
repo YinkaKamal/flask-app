@@ -3,45 +3,85 @@ import pickle
 import xgboost as xgb
 import pandas as pd
 import numpy as np
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 
-# This is to initialize Flask app
+# Initialize Flask app
 app = Flask(__name__)
 
-# This is to load the trained XGBoost model
+# Load the trained XGBoost model
 xgb_model = xgb.Booster()
-xgb_model.load_model("xgboost_model.json")  
+xgb_model.load_model("xgboost_model.json")
 
-# This is to load the scaler
+# Load the scaler
 with open("scaler.pkl", "rb") as f:
     scaler = pickle.load(f)
 
-@app.route("/predict")
-def home():
-    return "Welcome to Kamal Price Prediction API!"
+# HTML form template
+form_template = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Price Prediction Form</title>
+</head>
+<body>
+    <h2>Enter Product Details</h2>
+    <form method="POST" action="/predict_form">
+        {% for field in fields %}
+            <label for="{{ field }}">{{ field }}:</label>
+            <input type="text" name="{{ field }}" required><br><br>
+        {% endfor %}
+        <input type="submit" value="Predict">
+    </form>
+
+    {% if prediction is not none %}
+        <h3>Predicted Price: {{ prediction }}</h3>
+    {% endif %}
+</body>
+</html>
+"""
+
+# Feature names expected by the model
+expected_features = ['qty', 'freight_price', 'comp_1', 'ps1', 'fp1', 
+                     'comp_2', 'ps2', 'fp2', 'comp_3', 'ps3', 'fp3', 'lag_price']
+
+@app.route("/")
+def index():
+    return render_template_string(form_template, fields=expected_features, prediction=None)
+
+@app.route("/predict_form", methods=["POST"])
+def predict_form():
+    try:
+        # Extract form values
+        input_values = [float(request.form[field]) for field in expected_features]
+
+        # Create a DataFrame
+        df = pd.DataFrame([input_values], columns=expected_features)
+
+        # Scale the input
+        df_scaled = scaler.transform(df)
+
+        # Create DMatrix
+        dmatrix = xgb.DMatrix(df_scaled)
+
+        # Make prediction
+        prediction = xgb_model.predict(dmatrix)[0]
+
+        return render_template_string(form_template, fields=expected_features, prediction=round(prediction, 2))
+
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        # Get input JSON data
+        # JSON input
         data = request.get_json()
         df = pd.DataFrame(data)
 
-        # Ensure correct feature order
-        expected_features = ['qty', 'freight_price', 'comp_1', 'ps1', 'fp1', 
-                             'comp_2', 'ps2', 'fp2', 'comp_3', 'ps3', 'fp3', 'lag_price']
-        df = df[expected_features]
+        df = df[expected_features].fillna(0)
 
-        # Handle missing values
-        df = df.fillna(0)
-
-        # Scale input data
         df_scaled = scaler.transform(df)
-
-        # Convert to DMatrix for XGBoost
         dmatrix = xgb.DMatrix(df_scaled)
-
-        # Make predictions
         predictions = xgb_model.predict(dmatrix)
 
         return jsonify({"predictions": predictions.tolist()})
@@ -50,8 +90,5 @@ def predict():
         return jsonify({"error": str(e)})
 
 if __name__ == "__main__":
-    # Get port from environment variable (Render sets this dynamically)
     port = int(os.environ.get("PORT", 8080))
-    
-    # Run the Flask app
     app.run(host="0.0.0.0", port=port)
